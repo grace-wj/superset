@@ -628,6 +628,7 @@ def sanitize_url(url: str) -> str:
         return ""
 
     except Exception:
+        logger.warning("Failed to parse URL during sanitization", exc_info=True)
         return ""
 
 

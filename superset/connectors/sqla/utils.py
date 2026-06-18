@@ -83,9 +83,12 @@ def get_physical_table_metadata(
                         "is_dttm": type_spec.is_dttm if type_spec else None,
                     }
                 )
-        # Broad exception catch, because there are multiple possible exceptions
-        # from different drivers that fall outside CompileError
         except Exception:  # pylint: disable=broad-except
+            logging.debug(
+                "Could not determine type for column %s",
+                col.get("column_name"),
+                exc_info=True,
+            )
             col.update(
                 {
                     "type": "UNKNOWN",

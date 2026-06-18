@@ -233,6 +233,10 @@ class AbstractEventLogger(ABC):
             explode_by = payload.get("explode")
             records = json.loads(payload.get(explode_by))  # type: ignore
         except Exception:  # pylint: disable=broad-except
+            logging.debug(
+                "Could not explode log payload by key %s, using single record",
+                payload.get("explode"),
+            )
             records = [payload]
 
         self.log(
@@ -397,6 +401,7 @@ class DBEventLogger(AbstractEventLogger):
             try:
                 json_string = json.dumps(record)
             except Exception:  # pylint: disable=broad-except
+                logging.warning("Failed to serialize log record to JSON", exc_info=True)
                 json_string = None
             log = Log(
                 action=action,

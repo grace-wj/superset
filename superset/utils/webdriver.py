@@ -619,11 +619,11 @@ class WebDriverSelenium(WebDriverProxy):
         try:
             retry_call(self._driver.close, max_tries=tries)
         except Exception:  # pylint: disable=broad-except  # noqa: S110
-            pass
+            logger.debug("Failed to close Selenium driver", exc_info=True)
         try:
             self._driver.quit()
         except Exception:  # pylint: disable=broad-except  # noqa: S110
-            pass
+            logger.debug("Failed to quit Selenium driver", exc_info=True)
         self._driver = None
 
     @staticmethod

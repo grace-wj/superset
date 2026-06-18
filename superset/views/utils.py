@@ -196,6 +196,7 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     try:
         return json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
+        logger.warning("Failed to parse request JSON data", exc_info=True)
         return {}
 
 

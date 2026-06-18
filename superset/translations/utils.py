@@ -48,7 +48,9 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
                 ALL_LANGUAGE_PACKS[locale] = pack or {}
         except Exception:  # pylint: disable=broad-except
             logger.error(
-                "Error loading language pack for, falling back on en %s", locale
+                "Error loading language pack for %s, falling back to en",
+                locale,
+                exc_info=True,
             )
             pack = get_language_pack("en")
     return pack

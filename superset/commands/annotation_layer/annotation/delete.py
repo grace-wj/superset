@@ -14,35 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from functools import partial
-from typing import Optional
-
 from superset.commands.annotation_layer.annotation.exceptions import (
     AnnotationDeleteFailedError,
     AnnotationNotFoundError,
 )
-from superset.commands.base import BaseCommand
+from superset.commands.delete import BaseDeleteCommand
 from superset.daos.annotation_layer import AnnotationDAO
-from superset.models.annotations import Annotation
-from superset.utils.decorators import on_error, transaction
-
-logger = logging.getLogger(__name__)
 
 
-class DeleteAnnotationCommand(BaseCommand):
-    def __init__(self, model_ids: list[int]):
-        self._model_ids = model_ids
-        self._models: Optional[list[Annotation]] = None
-
-    @transaction(on_error=partial(on_error, reraise=AnnotationDeleteFailedError))
-    def run(self) -> None:
-        self.validate()
-        assert self._models
-        AnnotationDAO.delete(self._models)
-
-    def validate(self) -> None:
-        # Validate/populate model exists
-        self._models = AnnotationDAO.find_by_ids(self._model_ids)
-        if not self._models or len(self._models) != len(self._model_ids):
-            raise AnnotationNotFoundError()
+class DeleteAnnotationCommand(BaseDeleteCommand):
+    dao = AnnotationDAO
+    not_found = AnnotationNotFoundError
+    delete_failed = AnnotationDeleteFailedError
+    forbidden = None

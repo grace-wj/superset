@@ -23,6 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
+from superset.commands.delete import BaseDeleteCommand
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerDeleteFailedError,
     SemanticLayerNotFoundError,
@@ -88,28 +89,8 @@ class DeleteSemanticViewCommand(BaseCommand):
             raise SemanticViewForbiddenError() from ex
 
 
-class BulkDeleteSemanticViewCommand(BaseCommand):
-    def __init__(self, model_ids: list[int]):
-        self._model_ids = model_ids
-        self._models: list[SemanticView] = []
-
-    @transaction(
-        on_error=partial(
-            on_error,
-            catches=(SQLAlchemyError,),
-            reraise=SemanticViewDeleteFailedError,
-        )
-    )
-    def run(self) -> None:
-        self.validate()
-        SemanticViewDAO.delete(self._models)
-
-    def validate(self) -> None:
-        self._models = SemanticViewDAO.find_by_ids(self._model_ids, id_column="id")
-        if len(self._models) != len(self._model_ids):
-            raise SemanticViewNotFoundError()
-        for model in self._models:
-            try:
-                security_manager.raise_for_ownership(model)
-            except SupersetSecurityException as ex:
-                raise SemanticViewForbiddenError() from ex
+class BulkDeleteSemanticViewCommand(BaseDeleteCommand):
+    dao = SemanticViewDAO
+    not_found = SemanticViewNotFoundError
+    delete_failed = SemanticViewDeleteFailedError
+    forbidden = SemanticViewForbiddenError

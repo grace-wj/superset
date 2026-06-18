@@ -16,7 +16,6 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
@@ -29,6 +28,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
+from superset.commands.delete import BaseDeleteCommand
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
@@ -54,23 +54,13 @@ class DeleteEmbeddedDashboardCommand(BaseCommand):
             raise DashboardForbiddenError() from ex
 
 
-class DeleteDashboardCommand(BaseCommand):
-    def __init__(self, model_ids: list[int]):
-        self._model_ids = model_ids
-        self._models: Optional[list[Dashboard]] = None
+class DeleteDashboardCommand(BaseDeleteCommand):
+    dao = DashboardDAO
+    not_found = DashboardNotFoundError
+    delete_failed = DashboardDeleteFailedError
+    forbidden = DashboardForbiddenError
 
-    @transaction(on_error=partial(on_error, reraise=DashboardDeleteFailedError))
-    def run(self) -> None:
-        self.validate()
-        assert self._models
-        DashboardDAO.delete(self._models)
-
-    def validate(self) -> None:
-        # Validate/populate model exists
-        self._models = DashboardDAO.find_by_ids(self._model_ids)
-        if not self._models or len(self._models) != len(self._model_ids):
-            raise DashboardNotFoundError()
-        # Check there are no associated ReportSchedules
+    def validate_extra(self) -> None:
         if reports := ReportScheduleDAO.find_by_dashboard_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise DashboardDeleteFailedReportsExistError(
@@ -79,9 +69,3 @@ class DeleteDashboardCommand(BaseCommand):
                     report_names=",".join(report_names),
                 )
             )
-        # Check ownership
-        for model in self._models:
-            try:
-                security_manager.raise_for_ownership(model)
-            except SupersetSecurityException as ex:
-                raise DashboardForbiddenError() from ex
